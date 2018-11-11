@@ -1,0 +1,16 @@
+# ignore log files
+**/logs
+
+# ignore numerical data files
+# **/data
+# *.dat
+
+# ignore app file
+**/banana_app
+
+# ignore python cache files
+**/__pycache__
+**/.ipynb_checkpoints
+
+# ignore .idea
+**/.idea
