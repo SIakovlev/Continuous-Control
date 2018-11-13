@@ -56,6 +56,7 @@ class Trainer:
 
     def train(self, num_of_episodes):
 
+        logging.info("Training:")
         reward_window = deque(maxlen=100)
         # reward_matrix = np.zeros((num_of_episodes, 300))
 
@@ -67,33 +68,31 @@ class Trainer:
             total_loss = 0
 
             self.sigma *= 0.98
-
+            done = np.zeros((len(state), 1), dtype=np.bool)
             counter = 0
-            for t in range(self.t_max):
+            while not any(done):
                 action = self.agent.choose_action(state)
                 next_state, reward, done, _ = self.env.step(action)
                 self.agent.step(state, action, reward, next_state, done)
                 state = next_state
 
                 # DEBUG
-                logging.info("epsiode: {}, reward: {}, counter: {}, action: {}".
-                             format(episode_i, reward, counter, action))
+                # logging.info("epsiode: {}, reward: {}, counter: {}, action: {}".
+                #              format(episode_i, reward, counter, action))
 
                 total_loss += self.agent.agent_loss
                 total_reward += np.array(reward)
                 # reward_matrix[episode_i, counter] = reward
                 counter += 1
-                if any(done):
-                    break
 
             reward_window.append(total_reward)
-
+            self.avg_rewards.append(np.mean(total_reward))
             print('\rEpisode {}\tCurrent Score: {:.2f}\tAverage Score: {:.2f} '
                   '\t\tTotal loss: {:.2f}\tLearning rate (actor): {:.4f}\tLearning rate (critic): {:.4f}'.
                   format(episode_i, np.mean(total_reward), np.mean(reward_window),
                          total_loss, self.agent.learning_rate_actor, self.agent.learning_rate_critic), end="")
 
-            logging.info('Episode {}\tCurrent Score (average over 20 robots): {:.2f}\tAverage Score: {:.2f} '
+            logging.info('Episode {}\tCurrent Score (average over 20 robots): {:.2f}\tAverage Score (over episodes): {:.2f} '
                          '\t\tTotal loss: {:.2f}\tLearning rate (actor): {:.4f}\tLearning rate (critic): {:.4f}'.
                          format(episode_i, np.mean(total_reward), np.mean(reward_window),
                                 total_loss, self.agent.learning_rate_actor, self.agent.learning_rate_critic))
@@ -106,7 +105,6 @@ class Trainer:
 
                 avg_reward = np.mean(np.array(reward_window))
                 print("\rEpisode: {}\tAverage total reward: {:.2f}".format(episode_i, avg_reward))
-                self.avg_rewards.append(avg_reward)
 
                 if avg_reward >= 30.0:
                     print('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(episode_i - 100,
@@ -115,6 +113,7 @@ class Trainer:
                         datetime.datetime.today().strftime('%Y-%m-%d_%H-%M')))
                     torch.save(self.agent.get_critic().state_dict(), self.model_path + 'checkpoint_{}.pth'.format(
                         datetime.datetime.today().strftime('%Y-%m-%d_%H-%M')))
+                    break
 
         t = datetime.datetime.today().strftime('%Y-%m-%d_%H-%M')
         # reward_matrix.dump(self.results_path + 'reward_matrix_new_{}.dat'.format(t))

@@ -35,7 +35,6 @@ class Agent:
         self.gamma = params['gamma']
         self.learning_rate_actor = params['learning_rate_actor']
         self.learning_rate_critic = params['learning_rate_critic']
-        self.update_period = params['update_period']
         self.tau = params['tau']
 
         self.__optimiser_actor = optim.Adam(self.__actor_local.parameters(), self.learning_rate_actor)
@@ -65,11 +64,9 @@ class Agent:
         # add experience to memory
         self.__memory.add(state, action, reward, next_state, done)
 
-        self.__t = (self.__t + 1) % self.update_period
-        if not self.__t:
-            if self.__memory.is_ready():
-                experiences = self.__memory.sample()
-                self.__update(experiences)
+        if self.__memory.is_ready():
+            experiences = self.__memory.sample()
+            self.__update(experiences)
 
     def choose_action(self, state, mode='train'):
         if mode == 'train':
@@ -93,20 +90,22 @@ class Agent:
         states, actions, rewards, next_states, dones = experiences
 
         # update critic
+        # ----------------------------------------------------------
         loss_fn = nn.MSELoss()
         self.__optimiser_critic.zero_grad()
-
+        # form target
         next_actions = self.__actor_target(next_states)
         Q_target_next = self.__critic_target.forward(torch.cat((next_states, next_actions), dim=1)).detach()
         targets = rewards + self.gamma * Q_target_next * (1 - dones)
-        outputs = self.__critic_local.forward(torch.cat((next_states, actions), dim=1))
+        # form output
+        outputs = self.__critic_local.forward(torch.cat((states, actions), dim=1))
         mean_loss_critic = loss_fn(outputs, targets)  # minus added since it's gradient ascent
         mean_loss_critic.backward()
         self.__optimiser_critic.step()
 
         # update actor
+        # ----------------------------------------------------------
         self.__optimiser_actor.zero_grad()
-
         predicted_actions = self.__actor_local(states)
         mean_loss_actor = - self.__critic_local.forward(torch.cat((states, predicted_actions), dim=1)).mean()
         mean_loss_actor.backward()

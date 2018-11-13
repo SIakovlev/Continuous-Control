@@ -31,7 +31,7 @@ class UnityEnv(gym.Env):
         use_visual = params['visual_mode']
         multiagent = params['multiagent_mode']
 
-        self._env = UnityEnvironment(environment_filename, worker_id, seed=seed)
+        self._env = UnityEnvironment(environment_filename, seed=seed)
         self.name = self._env.academy_name
         self.visual_obs = None
         self._action_space_size = None

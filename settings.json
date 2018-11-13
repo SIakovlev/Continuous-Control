@@ -10,8 +10,7 @@
 		"learning_rate_actor" 			: 0.001,
         "learning_rate_critic" 			: 0.002,
 		"gamma" 						: 0.99,
-		"tau" 							: 0.01,
-		"update_period" 				: 8,
+		"tau" 							: 0.001,
 		"buf_params" 					: {"buffer_size" : 100000, "batch_size" : 64},
 		"nn_params"						: {"nn_actor" : {"l1" : [-1, 128], "l2" : [128, 64], "l3" : [64, -1]},
 											"nn_critic" : {"l1" : [-1, 128], "l2" : [128, 256], "l3" : [256, 128], "l4" : [128, 32], "l5" : [32, 1]}}
