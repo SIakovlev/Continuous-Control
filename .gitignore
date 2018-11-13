@@ -1,13 +1,17 @@
 # ignore log files
 **/logs
+*.log
 
 # ignore numerical data files
-# **/data
-# *.dat
+**/data
+*.dat
 
 # ignore app file
 **/Reacher_app
 **/Crawler_app
+**/Crawler_Linux
+**/Reacher_Linux
+**/Reacher_Linux_20
 
 # ignore python cache files
 **/__pycache__
