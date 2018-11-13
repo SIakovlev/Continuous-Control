@@ -6,7 +6,8 @@
 # *.dat
 
 # ignore app file
-**/banana_app
+**/Reacher_app
+**/Crawler_app
 
 # ignore python cache files
 **/__pycache__
