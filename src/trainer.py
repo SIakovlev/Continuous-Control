@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import os
 import sys
-from agent import AgentDDPG
+from agent import AgentDDPG, AgentPPO
 from unity_env import UnityEnv
 from collections import deque
 import datetime
@@ -34,7 +34,7 @@ class Trainer:
         agent_params = params['agent_params']
         agent_params['state_size'] = self.env.observation_space.shape[0]
         agent_params['action_size'] = self.env.action_space_size
-        self.agent = AgentDDPG(params=agent_params)
+        self.agent = AgentPPO(params=agent_params)
 
         trainer_params = params['trainer_params']
         self.learning_rate_decay = trainer_params['learning_rate_decay']

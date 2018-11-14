@@ -73,7 +73,7 @@ class GaussianPolicy(nn.Module):
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
         mean = torch.tanh(self.mean_head(x))
-        std = nn.Softplus(self.std_head(x))
+        std = F.softplus(self.std_head(x))
         return mean, std
 
     def sample_action(self, states):
@@ -82,10 +82,10 @@ class GaussianPolicy(nn.Module):
         action = dist.sample()
         return action.data
 
-    def evaluate_action(self, state, action):
-        mean, std = self.forward(state)
+    def evaluate_actions(self, states, actions):
+        mean, std = self.forward(states)
         dist = Normal(mean, std)
-        return dist.log_prob(action)
+        return dist.log_prob(actions)
 
 
 class ValueFunction(nn.Module):

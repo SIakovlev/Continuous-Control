@@ -19,3 +19,6 @@
 
 # ignore .idea
 **/.idea
+
+# ignore other platform specific file types
+*.DS_Store

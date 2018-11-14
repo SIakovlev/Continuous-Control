@@ -4,7 +4,7 @@ import torch
 import torch.optim as optim
 import torch.nn as nn
 from models import Actor, Critic, GaussianPolicy, ValueFunction
-from replay_buffer import ReplayBuffer
+from replay_buffer import ReplayBuffer, Buffer
 from uo_process import UOProcess
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -146,17 +146,17 @@ class AgentPPO:
 
         self.__action_size = action_size
         self.__state_size = state_size
-        self.__memory = ReplayBuffer(buf_params)
+        self.__memory = Buffer(buf_params)
         self.__t = 0
 
         self.gamma = params['gamma']
         self.learning_rate_policy = params['learning_rate_policy']
         self.learning_rate_value_fn = params['learning_rate_value_fn']
         self.tau = params['tau']
+        self.ppo_epochs = params['ppo_epochs']
 
         self.__optimiser_policy = optim.Adam(self.__policy.parameters(), self.learning_rate_policy)
         self.__optimiser_value_fn = optim.Adam(self.__value_fn.parameters(), self.learning_rate_value_fn)
-        self.__uo_process = UOProcess()
         # other parameters
         self.agent_loss = 0.0
 
@@ -182,7 +182,7 @@ class AgentPPO:
         self.__memory.add(state, action, reward, next_state, done)
 
         if self.__memory.is_ready():
-            experiences = self.__memory.sample()
+            experiences = self.__memory.get_data()
             self.__update(experiences)
 
     def choose_action(self, state, mode='train'):
@@ -191,7 +191,7 @@ class AgentPPO:
             state = torch.from_numpy(np.array(state)).float().unsqueeze(0).to(device)
             self.__policy.eval()
             with torch.no_grad():
-                action = self.__policy.sample_action(state) + self.__uo_process.sample()
+                action = self.__policy.sample_action(state)
             self.__policy.train()
             return list(np.clip(action.cpu().numpy().squeeze(), -1, 1))
         elif mode == 'test':
@@ -200,11 +200,17 @@ class AgentPPO:
             print("Invalid mode value")
 
     def reset(self, sigma):
-        self.__uo_process.reset(sigma)
+        pass
 
     def __update(self, experiences):
 
         states, actions, rewards, next_states, dones = experiences
+
+        log_probs_old = self.__policy.evaluate_actions(states, actions)
+
+        for i in range(self.ppo_epochs):
+            log_probs_new = self.__policy.evaluate_actions(states, actions)
+
 
         # update critic
         # ----------------------------------------------------------
