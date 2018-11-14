@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import os
 import sys
-from agent import Agent
+from agent import AgentDDPG
 from unity_env import UnityEnv
 from collections import deque
 import datetime
@@ -34,7 +34,7 @@ class Trainer:
         agent_params = params['agent_params']
         agent_params['state_size'] = self.env.observation_space.shape[0]
         agent_params['action_size'] = self.env.action_space_size
-        self.agent = Agent(params=agent_params)
+        self.agent = AgentDDPG(params=agent_params)
 
         trainer_params = params['trainer_params']
         self.learning_rate_decay = trainer_params['learning_rate_decay']
@@ -68,10 +68,10 @@ class Trainer:
             total_reward = 0
             total_loss = 0
 
-            self.sigma *= 0.98
+            self.sigma *= 0.995
             done = np.zeros((len(state), 1), dtype=np.bool)
             counter = 0
-            while not any(done):
+            for t in range(self.t_max):
                 action = self.agent.choose_action(state)
                 next_state, reward, done, _ = self.env.step(action)
                 self.agent.step(state, action, reward, next_state, done)
