@@ -75,7 +75,7 @@ class Buffer:
 
         states = torch.from_numpy(np.vstack([e.state for e in self.__memory if e is not None])).float().to(device)
         actions = torch.from_numpy(np.vstack([e.action for e in self.__memory if e is not None])).float().to(device)
-        rewards = torch.from_numpy(np.vstack([e.reward for e in self.__memory if e is not None])).float().to(device)
+        rewards = np.vstack([e.reward for e in self.__memory if e is not None])
         next_states = torch.from_numpy(np.vstack([e.next_state for e in self.__memory if e is not None])).float().to(
             device)
         dones = torch.from_numpy(
@@ -84,8 +84,8 @@ class Buffer:
         self.__memory.clear()
 
         dones_flatten = dones.view(dones.numel(), -1)
-        rewards_flatten = rewards.view(rewards.numel(), -1)
-        return states, actions, rewards_flatten, next_states, dones_flatten
+        # rewards_flatten = rewards.view(rewards.numel(), -1)
+        return states, actions, rewards, next_states, dones_flatten
 
     def __len__(self):
         return len(self.__memory)

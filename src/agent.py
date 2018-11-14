@@ -3,6 +3,7 @@ import random
 import torch
 import torch.optim as optim
 import torch.nn as nn
+from torch.autograd import Variable
 from models import Actor, Critic, GaussianPolicy, ValueFunction
 from replay_buffer import ReplayBuffer, Buffer
 from uo_process import UOProcess
@@ -154,6 +155,8 @@ class AgentPPO:
         self.learning_rate_value_fn = params['learning_rate_value_fn']
         self.tau = params['tau']
         self.ppo_epochs = params['ppo_epochs']
+        self.baseline_epochs = params['baseline_epochs']
+        self.ppo_eps = params['ppo_epsilon']
 
         self.__optimiser_policy = optim.Adam(self.__policy.parameters(), self.learning_rate_policy)
         self.__optimiser_value_fn = optim.Adam(self.__value_fn.parameters(), self.learning_rate_value_fn)
@@ -206,41 +209,34 @@ class AgentPPO:
 
         states, actions, rewards, next_states, dones = experiences
 
+        # convert rewards to future normalised rewards
+        discount = self.gamma ** np.arange(rewards.shape[0])
+        rewards = rewards * discount[:, np.newaxis]
+        rewards_future = rewards[::-1].cumsum(axis=0)[::-1]
+        mean = np.mean(rewards_future, axis=1)
+        std = np.std(rewards_future, axis=1) + 1.0e-10
+        rewards_normalized = torch.from_numpy(rewards_future.copy()).float().\
+            to(device).view(-1, 1).detach()
+
+        advantages = rewards_normalized - self.__value_fn(states)
         log_probs_old = self.__policy.evaluate_actions(states, actions)
 
+        # Policy update
         for i in range(self.ppo_epochs):
-            log_probs_new = self.__policy.evaluate_actions(states, actions)
+            log_probs = self.__policy.evaluate_actions(states, actions)
+            ratio = torch.exp(log_probs - log_probs_old)
+            surrogate_fn = torch.min(ratio * advantages,
+                                     torch.clamp(ratio, 1.0 - self.ppo_eps, 1.0 + self.ppo_eps) * advantages)
+            policy_loss = - surrogate_fn.mean()
+            self.__optimiser_policy.zero_grad()
+            policy_loss.backward(retain_graph=True)
+            self.__optimiser_policy.step()
 
-
-        # update critic
-        # ----------------------------------------------------------
-        loss_fn = nn.MSELoss()
-        self.__optimiser_critic.zero_grad()
-        # form target
-        next_actions = self.__actor_target(next_states)
-        Q_target_next = self.__critic_target.forward(torch.cat((next_states, next_actions), dim=1)).detach()
-        targets = rewards + self.gamma * Q_target_next * (1 - dones)
-        # form output
-        outputs = self.__critic_local.forward(torch.cat((states, actions), dim=1))
-        mean_loss_critic = loss_fn(outputs, targets)  # minus added since it's gradient ascent
-        mean_loss_critic.backward()
-        self.__optimiser_critic.step()
-
-        # update actor
-        # ----------------------------------------------------------
-        self.__optimiser_actor.zero_grad()
-        predicted_actions = self.__actor_local(states)
-        mean_loss_actor = - self.__critic_local.forward(torch.cat((states, predicted_actions), dim=1)).mean()
-        mean_loss_actor.backward()
-        self.__optimiser_actor.step()   # update actor
-
-        self.__soft_update(self.__critic_local, self.__critic_target, self.tau)
-        self.__soft_update(self.__actor_local, self.__actor_target, self.tau)
-
-    @staticmethod
-    def __soft_update(local_model, target_model, tau):
-        """Soft update model parameters.
-        θ_target = τ*θ_local + (1 - τ)*θ_target
-        """
-        for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
-            target_param.data.copy_(tau * local_param.data + (1.0 - tau) * target_param.data)
+        # Critic update
+        for i in range(self.baseline_epochs):
+            value_pred = self.__value_fn(states)
+            loss_fn = nn.MSELoss()
+            value_loss = loss_fn(value_pred, rewards_normalized.detach())
+            self.__optimiser_value_fn.zero_grad()
+            value_loss.backward(retain_graph=True)
+            self.__optimiser_value_fn.step()

@@ -91,16 +91,16 @@ class Trainer:
             print('\rEpisode {}\tCurrent Score: {:.2f}\tAverage Score: {:.2f} '
                   '\t\tTotal loss: {:.2f}\tLearning rate (actor): {:.4f}\tLearning rate (critic): {:.4f}'.
                   format(episode_i, np.mean(total_reward), np.mean(reward_window),
-                         total_loss, self.agent.learning_rate_actor, self.agent.learning_rate_critic), end="")
+                         total_loss, self.agent.learning_rate_policy, self.agent.learning_rate_value_fn), end="")
 
             logging.info('Episode {}\tCurrent Score (average over 20 robots): {:.2f}\tAverage Score (over episodes): {:.2f} '
                          '\t\tTotal loss: {:.2f}\tLearning rate (actor): {:.4f}\tLearning rate (critic): {:.4f}'.
                          format(episode_i, np.mean(total_reward), np.mean(reward_window),
-                                total_loss, self.agent.learning_rate_actor, self.agent.learning_rate_critic))
+                                total_loss, self.agent.learning_rate_policy, self.agent.learning_rate_value_fn))
 
-            self.agent.learning_rate_actor *= self.learning_rate_decay
-            self.agent.learning_rate_critic *= self.learning_rate_decay
-            self.agent.set_learning_rate(self.agent.learning_rate_actor, self.agent.learning_rate_critic)
+            self.agent.learning_rate_policy *= self.learning_rate_decay
+            self.agent.learning_rate_value_fn *= self.learning_rate_decay
+            self.agent.set_learning_rate(self.agent.learning_rate_policy, self.agent.learning_rate_value_fn)
 
             if episode_i % 100 == 0:
 

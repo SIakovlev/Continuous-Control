@@ -111,6 +111,6 @@ class ValueFunction(nn.Module):
         v_value = F.relu(self.fc2(v_value))
         v_value = F.relu(self.fc3(v_value))
         v_value = F.relu(self.fc4(v_value))
-        v_value = self.Q(v_value)
+        v_value = self.V(v_value)
 
         return v_value
