@@ -3,6 +3,7 @@ import random
 import numpy as np
 import torch
 import os
+import sys
 from agent import Agent
 from unity_env import UnityEnv
 from collections import deque
@@ -109,35 +110,39 @@ class Trainer:
                 if avg_reward >= 30.0:
                     print('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(episode_i - 100,
                                                                                                  avg_reward))
-                    torch.save(self.agent.get_actor().state_dict(), self.model_path + 'checkpoint_{}.pth'.format(
+                    if not os.path.exists(self.model_path):
+                        os.makedirs(self.model_path)
+                    torch.save(self.agent.get_actor().state_dict(), self.model_path + 'checkpoint_actor_{}.pth'.format(
                         datetime.datetime.today().strftime('%Y-%m-%d_%H-%M')))
-                    torch.save(self.agent.get_critic().state_dict(), self.model_path + 'checkpoint_{}.pth'.format(
+                    torch.save(self.agent.get_critic().state_dict(), self.model_path + 'checkpoint_critic_{}.pth'.format(
                         datetime.datetime.today().strftime('%Y-%m-%d_%H-%M')))
-                    break
 
         t = datetime.datetime.today().strftime('%Y-%m-%d_%H-%M')
         # reward_matrix.dump(self.results_path + 'reward_matrix_new_{}.dat'.format(t))
         np.array(self.avg_rewards).dump(self.results_path + 'average_rewards_new_{}.dat'.format(t))
 
-    def test(self, checkpoint_filename, time_span=10):
-        pass
-        # checkpoint_path = self.model_path + checkpoint_filename
-        # self.agent.get_qlocal().load_state_dict(torch.load(checkpoint_path))
-        # for t in range(time_span):
-        #     state = self.env.reset(train_mode=False)
-        #     self.score = 0
-        #     done = False
-        #
-        #     while not done:
-        #         action = self.agent.choose_action(state, 'test')
-        #         sys.stdout.flush()
-        #         self.env.render()
-        #         state, reward, done, _ = self.env.step(action)
-        #         self.score += reward
-        #
-        #     print('\nFinal score:', self.score)
-        #
-        # self.env.close()
+    def test(self, checkpoint_actor_filename, checkpoint_critic_filename, time_span=10):
+        checkpoint_actor_path = self.model_path + checkpoint_actor_filename
+        checkpoint_critic_path = self.model_path + checkpoint_critic_filename
+        self.agent.get_actor().load_state_dict(torch.load(checkpoint_actor_path))
+        self.agent.get_critic().load_state_dict(torch.load(checkpoint_critic_path))
+        for t in range(time_span):
+            state = self.env.reset(train_mode=False)
+            self.score = 0
+            #done = False
+
+            while True:
+                action = self.agent.choose_action(state, 'test')
+                sys.stdout.flush()
+                self.env.render()
+                state, reward, done, _ = self.env.step(action)
+                self.score += np.array(reward)
+                if any(done):
+                    break
+
+            print('\nFinal score:', self.score)
+
+        self.env.close()
 
     @staticmethod
     def __set_seed(seed):

@@ -78,7 +78,13 @@ class Agent:
             self.__actor_local.train()
             return list(np.clip(action.cpu().numpy().squeeze(), -1, 1))
         elif mode == 'test':
-            pass
+            # state should be transformed to a tensor
+            state = torch.from_numpy(np.array(state)).float().unsqueeze(0).to(device)
+            self.__actor_local.eval()
+            with torch.no_grad():
+                action = self.__actor_local(state)
+            self.__actor_local.train()
+            return list(np.clip(action.cpu().numpy().squeeze(), -1, 1))
         else:
             print("Invalid mode value")
 
