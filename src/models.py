@@ -55,7 +55,7 @@ class Critic(nn.Module):
 
 
 class GaussianPolicy(nn.Module):
-    """Actor (Policy) Model."""
+    """Policy (Actor) Model."""
 
     def __init__(self, params):
 
@@ -73,23 +73,23 @@ class GaussianPolicy(nn.Module):
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
         mean = torch.tanh(self.mean_head(x))
-        std = F.softplus(self.std_head(x))
-        return mean, std
+        logvar = -F.relu(self.std_head(x))
+        return mean, logvar
 
     def sample_action(self, states):
-        mean, std = self.forward(states)
-        dist = Normal(mean, std)
+        mean, logvar = self.forward(states)
+        dist = Normal(mean, torch.sqrt(torch.exp(logvar)))
         action = dist.sample()
         return action.data
 
     def evaluate_actions(self, states, actions):
-        mean, std = self.forward(states)
-        dist = Normal(mean, std)
+        mean, logvar = self.forward(states)
+        dist = Normal(mean, torch.sqrt(torch.exp(logvar)))
         return dist.log_prob(actions)
 
 
 class ValueFunction(nn.Module):
-    """ Dueling Actor (Policy) Model."""
+    """ Value Function (Critic) Model."""
 
     def __init__(self, params):
 

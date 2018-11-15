@@ -159,7 +159,7 @@ class AgentPPO:
         self.ppo_eps = params['ppo_epsilon']
 
         self.__optimiser_policy = optim.Adam(self.__policy.parameters(), self.learning_rate_policy)
-        self.__optimiser_value_fn = optim.Adam(self.__value_fn.parameters(), self.learning_rate_value_fn)
+        self.__optimiser_value_fn = optim.Adam(self.__value_fn.parameters(), self.learning_rate_value_fn, weight_decay=1e-3)
         # other parameters
         self.agent_loss = 0.0
 
@@ -215,11 +215,11 @@ class AgentPPO:
         rewards_future = rewards[::-1].cumsum(axis=0)[::-1]
         mean = np.mean(rewards_future, axis=1)
         std = np.std(rewards_future, axis=1) + 1.0e-10
-        rewards_normalized = torch.from_numpy(rewards_future.copy()).float().\
+        rewards_normalized = torch.from_numpy((rewards_future - mean[:, np.newaxis])/std[:, np.newaxis]).float().\
             to(device).view(-1, 1).detach()
 
-        advantages = rewards_normalized - self.__value_fn(states)
-        log_probs_old = self.__policy.evaluate_actions(states, actions)
+        advantages = rewards_normalized - self.__value_fn(states).detach()
+        log_probs_old = self.__policy.evaluate_actions(states, actions).detach()
 
         # Policy update
         for i in range(self.ppo_epochs):
@@ -229,14 +229,14 @@ class AgentPPO:
                                      torch.clamp(ratio, 1.0 - self.ppo_eps, 1.0 + self.ppo_eps) * advantages)
             policy_loss = - surrogate_fn.mean()
             self.__optimiser_policy.zero_grad()
-            policy_loss.backward(retain_graph=True)
+            policy_loss.backward()
             self.__optimiser_policy.step()
 
         # Critic update
         for i in range(self.baseline_epochs):
             value_pred = self.__value_fn(states)
             loss_fn = nn.MSELoss()
-            value_loss = loss_fn(value_pred, rewards_normalized.detach())
+            value_loss = loss_fn(value_pred, rewards_normalized)
             self.__optimiser_value_fn.zero_grad()
-            value_loss.backward(retain_graph=True)
+            value_loss.backward()
             self.__optimiser_value_fn.step()
