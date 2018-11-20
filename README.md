@@ -62,6 +62,9 @@ All project settings are stored in JSON file: `settings.json`. It is divided int
 
 - Actor. Use neural network for determenistic policy approximation as `state` -> `argmax_Q` mapping with the following loss function minimised:
 
+DDPG algorithm is summarised below:
+![ddpg algorithm](results/ddpg.png)
+
 Neural network architecture for actor:
 
 | Layer   | (in, out)          | Activation|
