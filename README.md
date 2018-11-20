@@ -6,7 +6,7 @@ Deep Reinforcement Learning Nanodegree Project 2
 
 ### Project description
 
-In this environment, a double-jointed arm can move to target locations. A reward of +0.1 is provided for each step that the agent's hand is in the goal location. Thus, the goal the agent is to maintain its position at the target location for as many time steps as possible.
+In this environment called Reacher, a double-jointed arm can move to target locations. A reward of +0.1 is provided for each step that the agent's hand is in the goal location. Thus, the goal the agent is to maintain its position at the target location for as many time steps as possible. Additional information can be found here: [link](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Learning-Environment-Examples.md#reacher)
 
 The observation space consists of  Each action is a vector with four numbers, 
 
@@ -56,14 +56,14 @@ All project settings are stored in JSON file: `settings.json`. It is divided int
 
 #### DDPG
 
+DDPG algorithm is summarised below:
+![ddpg algorithm](results/ddpg.png)
+
 **Idea**. 
 
 - Critic. Use neural network for Q-value function approximation as `state` -> `action` mapping with the following loss function minimised:
 
 - Actor. Use neural network for determenistic policy approximation as `state` -> `argmax_Q` mapping with the following loss function minimised:
-
-DDPG algorithm is summarised below:
-![ddpg algorithm](results/ddpg.png)
 
 Neural network architecture for actor:
 
