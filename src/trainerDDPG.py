@@ -34,7 +34,7 @@ class Trainer:
         agent_params = params['agent_params']
         agent_params['state_size'] = self.env.observation_space.shape[0]
         agent_params['action_size'] = self.env.action_space_size
-        self.agent = AgentPPO(params=agent_params)
+        self.agent = AgentDDPG(params=agent_params)
 
         trainer_params = params['trainer_params']
         self.learning_rate_decay = trainer_params['learning_rate_decay']
@@ -51,6 +51,7 @@ class Trainer:
 
         self.sigma = 0.5
 
+        print("DDPG agent.")
         print("Configuration:")
         pprint(params)
         logging.info("Configuration: {}".format(params))
@@ -85,22 +86,24 @@ class Trainer:
                 total_reward += np.array(reward)
                 # reward_matrix[episode_i, counter] = reward
                 counter += 1
+                if any(done):
+                    return
 
             reward_window.append(total_reward)
-            self.avg_rewards.append(np.mean(total_reward))
+            self.avg_rewards.append(np.mean(np.array(reward_window)))
             print('\rEpisode {}\tCurrent Score: {:.2f}\tAverage Score: {:.2f} '
                   '\t\tTotal loss: {:.2f}\tLearning rate (actor): {:.4f}\tLearning rate (critic): {:.4f}'.
                   format(episode_i, np.mean(total_reward), np.mean(reward_window),
-                         total_loss, self.agent.learning_rate_policy, self.agent.learning_rate_value_fn), end="")
+                         total_loss, self.agent.learning_rate_actor, self.agent.learning_rate_critic), end="")
 
             logging.info('Episode {}\tCurrent Score (average over 20 robots): {:.2f}\tAverage Score (over episodes): {:.2f} '
                          '\t\tTotal loss: {:.2f}\tLearning rate (actor): {:.4f}\tLearning rate (critic): {:.4f}'.
                          format(episode_i, np.mean(total_reward), np.mean(reward_window),
-                                total_loss, self.agent.learning_rate_policy, self.agent.learning_rate_value_fn))
+                                total_loss, self.agent.learning_rate_actor, self.agent.learning_rate_critic))
 
-            self.agent.learning_rate_policy *= self.learning_rate_decay
-            self.agent.learning_rate_value_fn *= self.learning_rate_decay
-            self.agent.set_learning_rate(self.agent.learning_rate_policy, self.agent.learning_rate_value_fn)
+            self.agent.learning_rate_actor *= self.learning_rate_decay
+            self.agent.learning_rate_critic *= self.learning_rate_decay
+            self.agent.set_learning_rate(self.agent.learning_rate_actor, self.agent.learning_rate_critic)
 
             if episode_i % 100 == 0:
 

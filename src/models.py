@@ -73,19 +73,21 @@ class GaussianPolicy(nn.Module):
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
         mean = torch.tanh(self.mean_head(x))
-        logvar = -F.relu(self.std_head(x))
+        logvar = -1 - F.relu(self.std_head(x))
         return mean, logvar
 
     def sample_action(self, states):
         mean, logvar = self.forward(states)
-        dist = Normal(mean, torch.sqrt(torch.exp(logvar)))
+        std = torch.sqrt(torch.exp(logvar))
+        dist = Normal(mean, std)
         action = dist.sample()
-        return action.data
+        return action, mean, std
 
     def evaluate_actions(self, states, actions):
         mean, logvar = self.forward(states)
-        dist = Normal(mean, torch.sqrt(torch.exp(logvar)))
-        return dist.log_prob(actions)
+        std = torch.sqrt(torch.exp(logvar))
+        dist = Normal(mean, std)
+        return dist.log_prob(actions).sum(dim=-1)
 
 
 class ValueFunction(nn.Module):
@@ -100,9 +102,7 @@ class ValueFunction(nn.Module):
         nn.init.xavier_uniform_(self.fc2.weight)
         self.fc3 = nn.Linear(params['l3'][0], params['l3'][1])
         nn.init.xavier_uniform_(self.fc3.weight)
-        self.fc4 = nn.Linear(params['l4'][0], params['l4'][1])
-        nn.init.xavier_uniform_(self.fc4.weight)
-        self.V = nn.Linear(params['l5'][0], 1)
+        self.V = nn.Linear(params['l4'][0], 1)
         nn.init.xavier_uniform_(self.V.weight)
 
     def forward(self, state):
@@ -110,7 +110,12 @@ class ValueFunction(nn.Module):
         v_value = F.relu(self.fc1(state))
         v_value = F.relu(self.fc2(v_value))
         v_value = F.relu(self.fc3(v_value))
-        v_value = F.relu(self.fc4(v_value))
+        if torch.isnan(v_value).any():
+            print('Nan')
+            print(self.fc1.weight.grad)
+            print(self.fc2.weight.grad)
+            print(self.fc3.weight.grad)
+            print(self.fc4.weight.grad)
         v_value = self.V(v_value)
 
         return v_value

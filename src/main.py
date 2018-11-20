@@ -1,6 +1,6 @@
 from pprint import pprint
 import json
-import trainer
+import trainerDDPG, trainerPPO
 import matplotlib as mpl
 import platform
 
@@ -15,7 +15,7 @@ def main(**kwargs):
     num_of_episodes = general_params['num_of_episodes']
     mode = general_params['mode']
 
-    t = trainer.Trainer(kwargs)
+    t = trainerDDPG.Trainer(kwargs)
     if mode['train']:
         t.train(num_of_episodes=num_of_episodes)
     else:
