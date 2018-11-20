@@ -52,4 +52,62 @@ All project settings are stored in JSON file: `settings.json`. It is divided int
 
  - Open `settings.json` and specify the relative path to the application file in `"path"` inside of `"env_params"`.
 
+### Implementation details
 
+#### DDPG
+
+**Idea**. 
+
+- Critic. Use neural network for Q-value function approximation as `state` -> `action` mapping with the following loss function minimised:
+
+- Actor. Use neural network for determenistic policy approximation as `state` -> `argmax_Q` mapping with the following loss function minimised:
+
+Neural network architecture for actor:
+
+| Layer   | (in, out)          | Activation|
+|---------|--------------------|-----------|
+| Layer 1 | (`state_size`, 128) | `relu`|
+| Layer 2 | (128, 64) | `relu` |
+| Layer 3 | (64, `action_size`)| `tanh` |
+
+Neural network architecture for critic:
+
+| Layer   | (in, out)          | Activation|
+|---------|--------------------|-----------|
+| Layer 1 | (`state_size`, 128) | `relu`|
+| Layer 2 | (128, 256) | `relu` |
+| Layer 3 | (256, 128)| `relu` |
+| Layer 4 | (128, 32) | `relu` |
+| Layer 5 | (32, 1)| - |
+
+DDPG implementation can be found in `agent.py`:
+```python
+    def __update(self, experiences):
+
+        states, actions, rewards, next_states, dones = experiences
+
+        # update critic
+        # ----------------------------------------------------------
+        loss_fn = nn.MSELoss()
+        self.__optimiser_critic.zero_grad()
+        # form target
+        next_actions = self.__actor_target(next_states)
+        Q_target_next = self.__critic_target.forward(torch.cat((next_states, next_actions), dim=1)).detach()
+        targets = rewards + self.gamma * Q_target_next * (1 - dones)
+        # form output
+        outputs = self.__critic_local.forward(torch.cat((states, actions), dim=1))
+        mean_loss_critic = loss_fn(outputs, targets)  # minus added since it's gradient ascent
+        mean_loss_critic.backward()
+        self.__optimiser_critic.step()
+
+        # update actor
+        # ----------------------------------------------------------
+        self.__optimiser_actor.zero_grad()
+        predicted_actions = self.__actor_local(states)
+        mean_loss_actor = - self.__critic_local.forward(torch.cat((states, predicted_actions), dim=1)).mean()
+        mean_loss_actor.backward()
+        self.__optimiser_actor.step()   # update actor
+
+        self.__soft_update(self.__critic_local, self.__critic_target, self.tau)
+        self.__soft_update(self.__actor_local, self.__actor_target, self.tau)
+```
