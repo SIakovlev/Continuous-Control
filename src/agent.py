@@ -4,12 +4,14 @@ import torch
 import torch.optim as optim
 import torch.nn as nn
 import torch.utils.data
+import torch.nn.utils
 import torch.nn.functional as F
 from models import Actor, Critic, GaussianPolicy, ValueFunction
 from replay_buffer import ReplayBuffer, Buffer
 from uo_process import UOProcess
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cpu")
 
 
 class AgentDDPG:
@@ -149,7 +151,6 @@ class AgentPPO:
         self.__action_size = action_size
         self.__state_size = state_size
         self.__memory = Buffer(buf_params)
-        self.__t = 0
 
         self.gamma = params['gamma']
         self.learning_rate_policy = params['learning_rate_policy']
@@ -161,8 +162,8 @@ class AgentPPO:
         self.baseline_epochs = params['baseline_epochs']
         self.ppo_eps = params['ppo_epsilon']
 
-        self.__optimiser_policy = optim.Adam(self.__policy.parameters(), self.learning_rate_policy)
-        self.__optimiser_value_fn = optim.Adam(self.__value_fn.parameters(), self.learning_rate_value_fn, weight_decay=1e-3)
+        self.__optimiser_policy = optim.Adam(self.__policy.parameters(), self.learning_rate_policy, weight_decay=1e-5)
+        self.__optimiser_value_fn = optim.Adam(self.__value_fn.parameters(), self.learning_rate_value_fn)
         # other parameters
         self.agent_loss = 0.0
 
@@ -183,22 +184,21 @@ class AgentPPO:
         return self.__value_fn
 
     # Other methods
-    def collect_trajectory(self, state, action, reward, next_state, done):
-        # add experience to memory
-        self.__memory.add(state, action, reward, next_state, done)
-
-    def step(self):
-        self.__update()
+    def step(self, state, action, reward, next_state, done, log_probs):
+        self.__memory.add(state, action, reward, next_state, done, log_probs)
+        if self.__memory.is_full():
+            experience = self.__memory.get_data()
+            self.__update(experience)
 
     def choose_action(self, state, mode='train'):
         if mode == 'train':
             # state should be transformed to a tensor
-            state = torch.from_numpy(np.array(state)).float().unsqueeze(0).to(device)
+            state = torch.from_numpy(np.array(state)).float().to(device)
             self.__policy.eval()
             with torch.no_grad():
-                action, mean, std = self.__policy.sample_action(state)
+                actions, log_probs, mean, std = self.__policy.sample_action(state)
             self.__policy.train()
-            return list(np.clip(action.cpu().numpy().squeeze(), -1, 1)), mean.cpu().numpy(), std.cpu().numpy()
+            return list(actions.cpu().numpy().squeeze()), log_probs.cpu().numpy(), mean.cpu().numpy(), std.cpu().numpy()
         elif mode == 'test':
             pass
         else:
@@ -207,76 +207,66 @@ class AgentPPO:
     def reset(self, sigma):
         pass
 
-    def __update(self, batch_size=256):
+    def __update(self, experience, batch_size=256):
 
-        states, actions, rewards, next_states, dones = list(self.__memory.get_data())
+        states, actions, rewards, next_states, dones, log_probs_old = list(experience)
 
-        # T = rewards.shape[0]
-        # last_return = torch.zeros(rewards.shape[1]).float().to(device)
-        # returns = torch.zeros(rewards.shape).float().to(device)
-        #
-        # for t in reversed(range(T)):
-        #     last_return = rewards[t] + last_return * self.gamma * (1 - dones[t])
-        #     returns[t] = last_return
+        T = rewards.shape[0]
+        last_return = torch.zeros(rewards.shape[1]).float().to(device)
+        returns = torch.zeros(rewards.shape).float().to(device)
 
-        log_probs_old = self.__policy.evaluate_actions(states, actions).detach()
+        for t in reversed(range(T)):
+            last_return = rewards[t] + last_return * self.gamma * (1 - dones[t])
+            returns[t] = last_return
 
-        discount = self.gamma ** np.arange(rewards.shape[0])
-        rewards_cpu = rewards.cpu().numpy() * discount[:, np.newaxis]
-        returns = rewards_cpu[::-1].cumsum(axis=0)[::-1]
-        mean = np.mean(returns, axis=1)
-        std = np.std(returns, axis=1) + 1.0e-10
-        returns_normalized = torch.from_numpy((returns - mean[:, np.newaxis]) / std[:, np.newaxis]).float().\
-            to(device).detach()
+        states = states.view(-1, self.__state_size)
+        actions = actions.view(-1, self.__action_size)
+        returns = returns.view(-1, 1)
+        dones = dones.view(-1, 1)
+        log_probs_old = log_probs_old.view(-1, 1)
 
-        trajectories = [states, actions, returns_normalized, next_states, rewards, log_probs_old]
-
-        trajectory_batches = [list(torch.split(trajectory_batch, batch_size)) for trajectory_batch in trajectories]
-
-        num_of_batches = len(trajectory_batches[0])
-
+        updates_num = states.shape[0] // batch_size
         # Critic update
-        for i in range(num_of_batches):
-            # for i in range(self.updates_num):
+        for _ in range(self.baseline_epochs):
+            for _ in range(updates_num):
 
-            # idx = np.random.randint(0, returns.shape[0], batch_size)
-            states_batch = trajectory_batches[0][i]
-            returns_batch = trajectory_batches[2][i]
-            next_states_batch = trajectory_batches[3][i]
-            rewards_batch = rewards[4][i]
+                idx = np.random.randint(0, states.shape[0], batch_size)
+                states_batch = states[idx]
+                returns_batch = returns[idx]
 
-            self.__optimiser_value_fn.zero_grad()
-            value_pred_next = self.__value_fn(next_states_batch).squeeze().view(-1, 1)
-            value_pred = self.__value_fn(states_batch).squeeze().view(-1, 1)
-            loss_fn = nn.MSELoss()
-            value_loss = loss_fn(value_pred, value_pred_next + rewards_batch.view(-1, 1))
-            value_loss.backward()
-            self.__optimiser_value_fn.step()
-
+                self.__optimiser_value_fn.zero_grad()
+                value_pred = self.__value_fn(states_batch).view(-1, 1)
+                loss_fn = nn.MSELoss()
+                value_loss = loss_fn(value_pred, returns_batch)
+                value_loss.backward()
+                torch.nn.utils.clip_grad_norm_(self.__value_fn.parameters(), 10)
+                self.__optimiser_value_fn.step()
 
         # Policy update
-        for i in range(num_of_batches):
-            # for i in range(self.updates_num):
 
-            # idx = np.random.randint(0, returns.shape[0], batch_size)
-            states_batch = trajectory_batches[0][i]
-            actions_batch = trajectory_batches[1][i]
-            returns_batch = trajectory_batches[2][i]
-            log_probs_old_batch = trajectory_batches[5][i]
+        for _ in range(self.ppo_epochs):
+            for _ in range(updates_num):
 
-            # states_batch = states[idx]
-            # actions_batch = actions[idx]
-            # returns_batch = returns[idx]
-            # log_probs_old_batch = log_probs_old[idx]
+                idx = np.random.randint(0, states.shape[0], batch_size)
+                states_batch = states[idx]
+                actions_batch = actions[idx]
+                returns_batch = returns[idx]
+                log_probs_old_batch = log_probs_old[idx]
 
-            advantages = (returns_batch - self.__value_fn(states_batch).squeeze().detach()).view(-1, 1)
+                advantages = (returns_batch - self.__value_fn(states_batch).detach()).view(-1, 1)
 
-            self.__optimiser_policy.zero_grad()
-            log_probs_batch = self.__policy.evaluate_actions(states_batch, actions_batch)
-            ratio = torch.exp(log_probs_batch.view(-1, 1) - log_probs_old_batch.view(-1, 1))
-            surrogate_fn = torch.min(ratio * advantages,
-                                     torch.clamp(ratio * advantages, 1.0 - self.ppo_eps, 1.0 + self.ppo_eps))
+                advantages = (advantages - advantages.mean())/advantages.std()
 
-            policy_loss = - surrogate_fn.mean()
-            policy_loss.backward()
-            self.__optimiser_policy.step()
+                self.__optimiser_policy.zero_grad()
+                log_probs_batch = self.__policy.evaluate_actions(states_batch, actions_batch).view(-1, 1)
+                ratio = (log_probs_batch - log_probs_old_batch).exp()
+
+                clipped_fn = torch.clamp(ratio * advantages, 1.0 - self.ppo_eps, 1.0 + self.ppo_eps)
+                surrogate_fn = torch.min(ratio * advantages, clipped_fn)
+
+                entropy = F.kl_div(log_probs_batch.view(-1, 1), log_probs_old_batch.view(-1, 1))
+                policy_loss = - surrogate_fn.mean()
+
+                policy_loss.backward()
+                torch.nn.utils.clip_grad_norm_(self.__policy.parameters(), 10)
+                self.__optimiser_policy.step()

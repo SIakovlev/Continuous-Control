@@ -15,7 +15,7 @@ def main(**kwargs):
     num_of_episodes = general_params['num_of_episodes']
     mode = general_params['mode']
 
-    t = trainerDDPG.Trainer(kwargs)
+    t = trainerPPO.Trainer(kwargs)
     if mode['train']:
         t.train(num_of_episodes=num_of_episodes)
     else:

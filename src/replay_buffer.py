@@ -5,6 +5,7 @@ import numpy as np
 from collections import namedtuple, deque
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cpu")
 
 
 class ReplayBuffer:
@@ -57,11 +58,15 @@ class Buffer:
 
         self.__buffer_size = buffer_size
 
-        self.__experience = namedtuple("Experience", field_names=["state", "action", "reward", "next_state", "done"])
+        self.__experience = namedtuple("Experience",
+                                       field_names=["state", "action", "reward", "next_state", "done", "log_probs"])
         self.__memory = deque(maxlen=buffer_size)
 
-    def add(self, state, action, reward, next_state, done):
-        self.__memory.append(self.__experience(state, action, reward, next_state, done))
+    def add(self, state, action, reward, next_state, done, log_probs):
+        self.__memory.append(self.__experience(state, action, reward, next_state, done, log_probs))
+
+    def is_full(self):
+        return len(self) >= self.__buffer_size
 
     def get_data(self):
 
@@ -70,10 +75,11 @@ class Buffer:
         rewards = torch.from_numpy(np.array([e.reward for e in self.__memory if e is not None])).float().to(device)
         next_states = torch.from_numpy(np.array([e.next_state for e in self.__memory if e is not None])).float().to(device)
         dones = torch.from_numpy(np.array([e.done for e in self.__memory if e is not None]).astype(np.uint8)).float().to(device)
+        log_probs = torch.from_numpy(np.array([e.log_probs for e in self.__memory if e is not None])).float().to(device)
 
         self.__memory.clear()
 
-        return states, actions, rewards, next_states, dones
+        return states, actions, rewards, next_states, dones, log_probs
 
     def __len__(self):
         return len(self.__memory)

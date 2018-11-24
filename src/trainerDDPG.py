@@ -61,7 +61,6 @@ class Trainer:
         logging.info("Training:")
         reward_window = deque(maxlen=100)
         # reward_matrix = np.zeros((num_of_episodes, 300))
-
         for episode_i in range(1, num_of_episodes):
 
             state = self.env.reset()
@@ -70,6 +69,7 @@ class Trainer:
             total_loss = 0
 
             self.sigma *= 0.995
+
             done = np.zeros((len(state), 1), dtype=np.bool)
             counter = 0
             for t in range(self.t_max):

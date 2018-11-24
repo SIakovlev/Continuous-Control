@@ -67,10 +67,11 @@ class Trainer:
             counter = 0
             total_action_mean = 0
             total_action_std = 0
+
             for t in range(self.t_max):
-                action, mean, std = self.agent.choose_action(state)
+                action, log_probs, mean, std = self.agent.choose_action(state)
                 next_state, reward, done, _ = self.env.step(action)
-                self.agent.collect_trajectory(state, action, reward, next_state, done)
+                self.agent.step(state, action, reward, next_state, done, log_probs)
                 state = next_state
 
                 # DEBUG
@@ -82,9 +83,7 @@ class Trainer:
 
                 counter += 1
                 total_action_mean = total_action_mean * (counter - 1)/counter + np.mean(mean)/counter
-                total_action_std = total_action_std * (counter - 1)/counter  + np.mean(std)/counter
-
-            self.agent.step()
+                total_action_std = total_action_std * (counter - 1)/counter + np.mean(std)/counter
 
             reward_window.append(total_reward)
             self.avg_rewards.append(np.mean(total_reward))
