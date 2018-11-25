@@ -59,11 +59,15 @@ All project settings are stored in JSON file: `settings.json`. It is divided int
 DDPG algorithm is summarised below:
 ![ddpg algorithm](results/ddpg.png)
 
-**Idea**. 
+**Idea (Summary)**. 
 
 - Critic. Use neural network for Q-value function approximation as `state` -> `action` mapping with the following loss function minimised:
+![ddpg critic_loss](results/ddpg_critic_loss.png)
 
 - Actor. Use neural network for determenistic policy approximation as `state` -> `argmax_Q` mapping with the following loss function minimised:
+![ddpg actor_loss](results/ddpg_actor_loss.png)
+
+- Add a sample of the Ornstein–Uhlenbeck process ([link](https://en.wikipedia.org/wiki/Ornstein%E2%80%93Uhlenbeck_process)) for explotarion.
 
 Neural network architecture for actor:
 
@@ -114,8 +118,43 @@ DDPG implementation can be found in `agent.py`:
         self.__soft_update(self.__critic_local, self.__critic_target, self.tau)
         self.__soft_update(self.__actor_local, self.__actor_target, self.tau)
 ```
+
+#### PPO 
+
+_This section is under development_
+
+The Proximal Policy Optimisation method is a good alternative to DDPG for this problem. It also shows much better results in continuous control tasks according to [benchmarks](https://arxiv.org/pdf/1604.06778.pdf).
+
+**Idea (Summary) **
+
+- Critic. Use neural network for value function approximation: `state` -> `value(state)`
+- Actor. Use neural network for policy approximation, that represents value function: `state` -> `action`. However, the network outputs mean and standard deviation of the action, that is sampled from the Gaussian distribution afterwards. This enables exploration at the early stages of the agent training. 
+
+Neural network architecture for actor:
+
+| Layer   | (in, out)          | Activation|
+|---------|--------------------|-----------|
+| Layer 1 | (`state_size`, 128) | `relu`|
+| Layer 2 | (128, 64) | `relu` |
+| mean head | (64, `action_size`)| `tanh` |
+| std head | (64, `action_size`)| -`relu` |
+
+Neural network architecture for critic:
+
+| Layer   | (in, out)          | Activation|
+|---------|--------------------|-----------|
+| Layer 1 | (`state_size`, 128) | `relu`|
+| Layer 2 | (128, 256) | `relu` |
+| Layer 3 | (256, 128)| `relu` |
+| Layer 4 | (128, 32) | `relu` |
+| Layer 5 | (32, 1)| - |
+
 #### Result
 
 The following graph shows avegrage reward obtained by 20 agents during the first 200 episodes. A can be clearly observed, the reward remains stable around 38-39 for more than 100 episodes. 
 
 ![reward_graph](https://github.com/SIakovlev/Continuous-Control/blob/master/results/reward.png)
+
+### Possible improvements
+
+PPO is a good candidate (see the section above). According to benchmarks results it is much more stable algorithm for the variety of different environments. 
