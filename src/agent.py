@@ -264,7 +264,8 @@ class AgentPPO:
                 clipped_fn = torch.clamp(ratio * advantages, 1.0 - self.ppo_eps, 1.0 + self.ppo_eps)
                 surrogate_fn = torch.min(ratio * advantages, clipped_fn)
 
-                entropy = F.kl_div(log_probs_batch.view(-1, 1), log_probs_old_batch.view(-1, 1))
+                # entropy = F.kl_div(log_probs_batch.view(-1, 1), log_probs_old_batch.view(-1, 1))
+
                 policy_loss = - surrogate_fn.mean()
 
                 policy_loss.backward()

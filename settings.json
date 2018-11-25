@@ -2,7 +2,7 @@
 	"general_params" : {
 		"seed" 							: 0,
 	  	"num_of_episodes" 				: 300,
-	  	"mode"							: {"train" : 1, "test" : 0}
+	  	"mode"							: {"train" : 0, "test" : 1}
 	},
 	"agent_params" : {
 		"state_size"					: -1,
@@ -17,7 +17,7 @@
         "baseline_epochs"               : 5,
         "ppo_epochs"                    : 3,
         "ppo_epsilon"                   : 0.2,
-		"buf_params" 					: {"buffer_size" : 200, "batch_size" : 128},
+		"buf_params" 					: {"buffer_size" : 1000, "batch_size" : 128},
 		"nn_params"						: {"nn_actor" : {"l1" : [-1, 128], "l2" : [128, 64], "l3" : [64, -1]},
 											"nn_critic" : {"l1" : [-1, 128], "l2" : [128, 256], "l3" : [256, 128], "l4" : [128, 32], "l5" : [32, 1]},
 											"nn_policy" : {"l1" : [-1, 128], "l2" : [128, 64], "l3" : [64, -1]},
@@ -30,7 +30,7 @@
     	"model_path"					: "../models/"
 	},
 	"env_params" : {
-		"path"							: "../Reacher_Linux_20/Reacher.x86_64",
+		"path"							: "../Reacher_app/Reacher-20.app",
 		"seed"							: 0,
 		"worker_id"						: 0,
 		"visual_mode"					: false,
