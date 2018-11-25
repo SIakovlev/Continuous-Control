@@ -2,7 +2,7 @@
 
 Deep Reinforcement Learning Nanodegree Project 2
 
-(add gif file)
+![Continuous_Control](https://github.com/SIakovlev/Continuous-Control/blob/master/results/result.gif)
 
 ### Project description
 
@@ -30,7 +30,7 @@ All project files are stored in `/src` folder:
 - `main.py` - main file where the program execution starts.
 - `agent.py` - agent class implementation.
 - `unity_env.py` - Unity Environment wrapper (borrowed from [here](https://github.com/Unity-Technologies/ml-agents/blob/master/gym-unity/gym_unity/envs/unity_env.py) and modified).
-- `trainer.py` - trainer (interface between agent and environment) implementation.
+- `trainerDDPG.py` - trainer (interface between agent and environment) implementation. This particular interface is for DDPG agent. There is also one for PPO agent.
 - `replay_buffer.py` - memory replay buffer implementation.
 - `models.py` - neural network implementations (PyTorch)
 
@@ -114,3 +114,8 @@ DDPG implementation can be found in `agent.py`:
         self.__soft_update(self.__critic_local, self.__critic_target, self.tau)
         self.__soft_update(self.__actor_local, self.__actor_target, self.tau)
 ```
+#### Result
+
+The following graph shows avegrage reward obtained by 20 agents during the first 200 episodes. A can be clearly observed, the reward remains stable around 38-39 for more than 100 episodes. 
+
+![reward_graph](https://github.com/SIakovlev/Continuous-Control/blob/master/results/reward.png)
