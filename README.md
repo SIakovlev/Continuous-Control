@@ -33,6 +33,7 @@ All project files are stored in `/src` folder:
 - `trainerDDPG.py` - trainer (interface between agent and environment) implementation. This particular interface is for DDPG agent. There is also one for PPO agent.
 - `replay_buffer.py` - memory replay buffer implementation.
 - `models.py` - neural network implementations (PyTorch)
+- `uo_process.py` - Ornstein–Uhlenbeck process class implementation.
 
 All project settings are stored in JSON file: `settings.json`. It is divided into 4 sections: 
 - `general_params` - general, module agnostic parameters: mode (`train` or `test`), number of episodes, seed.
