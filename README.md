@@ -62,10 +62,12 @@ DDPG algorithm is summarised below:
 **Idea (Summary)**. 
 
 - Critic. Use neural network for Q-value function approximation as `state` -> `action` mapping with the following loss function minimised:
-![ddpg critic_loss](results/ddpg_critic_loss.png)
+
+<img src="results/ddpg_critic_loss.png" width="256">
 
 - Actor. Use neural network for determenistic policy approximation as `state` -> `argmax_Q` mapping with the following loss function minimised:
-![ddpg actor_loss](results/ddpg_actor_loss.png)
+
+<img src="results/ddpg_actor_loss.png" width="350">
 
 - Add a sample of the Ornstein–Uhlenbeck process ([link](https://en.wikipedia.org/wiki/Ornstein%E2%80%93Uhlenbeck_process)) for explotarion.
 
