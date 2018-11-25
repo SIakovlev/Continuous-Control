@@ -62,11 +62,9 @@ DDPG algorithm is summarised below:
 **Idea (Summary)**. 
 
 - Critic. Use neural network for Q-value function approximation as `state` -> `action` mapping with the following loss function minimised:
-
 <img src="results/ddpg_critic_loss.png" width="256">
 
 - Actor. Use neural network for determenistic policy approximation as `state` -> `argmax_Q` mapping with the following loss function minimised:
-
 <img src="results/ddpg_actor_loss.png" width="350">
 
 - Add a sample of the Ornstein–Uhlenbeck process ([link](https://en.wikipedia.org/wiki/Ornstein%E2%80%93Uhlenbeck_process)) for exploration.
@@ -153,9 +151,10 @@ Neural network architecture for critic:
 
 #### Result
 
-The following graph shows avegrage reward obtained by 20 agents during the first 200 episodes. As can be clearly observed, the reward remains stable around 38-39 for more than 100 episodes. 
-
+- The following graph shows avegrage reward obtained by 20 agents during the first 200 episodes. As can be clearly observed, the reward remains stable around 38-39 for more than 100 episodes. 
 ![reward_graph](https://github.com/SIakovlev/Continuous-Control/blob/master/results/reward.png)
+- Log files of the training procedure can be found in `logs/run_2018-11-21_11-14.log`
+- Actor and critic checkpoints are saved in `results/` folder.
 
 ### Possible improvements
 
