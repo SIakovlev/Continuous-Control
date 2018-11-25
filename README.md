@@ -69,7 +69,7 @@ DDPG algorithm is summarised below:
 
 <img src="results/ddpg_actor_loss.png" width="350">
 
-- Add a sample of the Ornstein–Uhlenbeck process ([link](https://en.wikipedia.org/wiki/Ornstein%E2%80%93Uhlenbeck_process)) for explotarion.
+- Add a sample of the Ornstein–Uhlenbeck process ([link](https://en.wikipedia.org/wiki/Ornstein%E2%80%93Uhlenbeck_process)) for exploration.
 
 Neural network architecture for actor:
 
@@ -127,7 +127,7 @@ _This section is under development_
 
 The Proximal Policy Optimisation method is a good alternative to DDPG for this problem. It also shows much better results in continuous control tasks according to [benchmarks](https://arxiv.org/pdf/1604.06778.pdf).
 
-**Idea (Summary) **
+**Idea (Summary)**
 
 - Critic. Use neural network for value function approximation: `state` -> `value(state)`
 - Actor. Use neural network for policy approximation, that represents value function: `state` -> `action`. However, the network outputs mean and standard deviation of the action, that is sampled from the Gaussian distribution afterwards. This enables exploration at the early stages of the agent training. 
@@ -153,7 +153,7 @@ Neural network architecture for critic:
 
 #### Result
 
-The following graph shows avegrage reward obtained by 20 agents during the first 200 episodes. A can be clearly observed, the reward remains stable around 38-39 for more than 100 episodes. 
+The following graph shows avegrage reward obtained by 20 agents during the first 200 episodes. As can be clearly observed, the reward remains stable around 38-39 for more than 100 episodes. 
 
 ![reward_graph](https://github.com/SIakovlev/Continuous-Control/blob/master/results/reward.png)
 
