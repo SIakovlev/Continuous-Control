@@ -158,5 +158,3 @@ Neural network architecture for critic:
 - Actor and critic checkpoints are saved in `results/` folder.
 
 ### Possible improvements
-
-PPO is a good candidate (see the section above). According to benchmarks results it is much more stable algorithm for the variety of different environments. 
