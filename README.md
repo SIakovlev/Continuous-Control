@@ -1,6 +1,6 @@
-# Continuous-Control
+# Reacher. Continuous Control
 
-Deep Reinforcement Learning Nanodegree Project 2
+(Deep Reinforcement Learning Nanodegree Project 2)
 
 <p align="center">
 <img src="results/result.gif">
@@ -158,5 +158,3 @@ Neural network architecture for critic:
 ![reward_graph](https://github.com/SIakovlev/Continuous-Control/blob/master/results/reward.png)
 - Log files of the training procedure can be found in `logs/run_2018-11-21_11-14.log`
 - Actor and critic checkpoints are saved in `results/` folder.
-
-### Possible improvements
